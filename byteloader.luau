@@ -32,7 +32,7 @@ RegisterGame(
 	{
 	111385005478215,
 	90457367396205
-}, "Fish and Monsters!", "https://raw.githubusercontent.com/bytecodexs/bytecode/main/src/bytecode.lua")
+}, "Fish and Monsters!", "https://raw.githubusercontent.com/bytecodexs/bytecodexs/main/src/bytecode.lua")
 function ByteCode.Notify(title, text, duration)
 	pcall(function()
 		game:GetService("StarterGui"):SetCore("SendNotification", {
