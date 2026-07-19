@@ -24,5 +24,5 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/bytecodexs/bytecode/m
 ---
 
 <p align="center">
-⭐ Star this repository if you like it!
+⭐ Star this repo if u like it!
 </p>
