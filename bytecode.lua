@@ -32,6 +32,36 @@ pcall(function()
     spawnSvc = Knit.GetService("SpawnService")
 end)
 
+_G.__FAM_DEBUG_LOG = _G.__FAM_DEBUG_LOG or {}
+
+local function dbgSerialize(v, depth)
+    depth = depth or 0
+    if depth > 3 then return "..." end
+    if type(v) == "table" then
+        local parts = {}
+        for k, vv in pairs(v) do
+            parts[#parts + 1] = tostring(k) .. "=" .. dbgSerialize(vv, depth + 1)
+        end
+        return "{" .. table.concat(parts, ", ") .. "}"
+    end
+    return tostring(v)
+end
+
+local function dbg(...)
+    local parts = {}
+    for i = 1, select("#", ...) do
+        local v = select(i, ...)
+        parts[#parts + 1] = dbgSerialize(v)
+    end
+    local line = table.concat(parts, " ")
+    print(line)
+    local buf = _G.__FAM_DEBUG_LOG
+    buf[#buf + 1] = line
+    if #buf > 2000 then
+        table.remove(buf, 1)
+    end
+end
+
 local R = {
     StartFishing    = FR and FR:WaitForChild("StartFishing", 5),
     ThrowFloater    = FR and FR:WaitForChild("ThrowFloater", 5),
@@ -47,11 +77,11 @@ local R = {
     Shop            = W:FindFirstChild("FishermanShopRemotes"),
 }
 
-print("[FAM DEBUG] R.PullInput path:", R.PullInput and R.PullInput:GetFullName())
-print("[FAM DEBUG] R.PullState path:", R.PullState and R.PullState:GetFullName())
-print("[FAM DEBUG] R.FishCaught path:", R.FishCaught and R.FishCaught:GetFullName())
-print("[FAM DEBUG] reward.RE FishingPullState exists:", reward and reward.RE and reward.RE:FindFirstChild("FishingPullState") ~= nil)
-print("[FAM DEBUG] W FishingPullState exists:", W:FindFirstChild("FishingPullState") ~= nil)
+dbg("[FAM DEBUG] R.PullInput path:", R.PullInput and R.PullInput:GetFullName())
+dbg("[FAM DEBUG] R.PullState path:", R.PullState and R.PullState:GetFullName())
+dbg("[FAM DEBUG] R.FishCaught path:", R.FishCaught and R.FishCaught:GetFullName())
+dbg("[FAM DEBUG] reward.RE FishingPullState exists:", reward and reward.RE and reward.RE:FindFirstChild("FishingPullState") ~= nil)
+dbg("[FAM DEBUG] W FishingPullState exists:", W:FindFirstChild("FishingPullState") ~= nil)
 
 local BossComm = W:FindFirstChild("BossEventComm") or W:WaitForChild("BossEventComm", 5)
 local Boss = {
@@ -646,10 +676,10 @@ local function runCycle(myGen)
     local tooEarly = false
     if R.PullState then
         connPull = R.PullState.OnClientEvent:Connect(function(payload)
-            print("[FAM DEBUG] PullState payload:", payload)
+            dbg("[FAM DEBUG] PullState payload:", payload)
             if type(payload) == "table" then
                 for k, v in pairs(payload) do
-                    print("[FAM DEBUG]   ", k, "=", v)
+                    dbg("[FAM DEBUG]   ", k, "=", v)
                 end
             end
             if type(payload) ~= "table" then return end
@@ -682,7 +712,7 @@ local function runCycle(myGen)
     local okBegin, resBegin = pcall(function()
         return R.PullInput:InvokeServer(sid, "begin")
     end)
-    print("[FAM DEBUG] begin ok=", okBegin, "result=", resBegin)
+    dbg("[FAM DEBUG] begin ok=", okBegin, "result=", resBegin)
     task.wait(0.5) -- beri waktu server menginisialisasi sesi sebelum tap pertama (hindari reason=too_early)
     local ppt = tonumber(bite.progressPerTap) or 0.06
     local delay = state.speedFishingDelay or math.clamp(0.055 + (ppt < 0.05 and 0.02 or 0), 0.05, 0.12)
@@ -694,7 +724,7 @@ local function runCycle(myGen)
             tooEarly = false
             beginRetries += 1
             local waitFor = 0.5 + (beginRetries * 0.3)
-            print("[FAM DEBUG] too_early detected, retry begin #" .. beginRetries .. " after " .. waitFor .. "s")
+            dbg("[FAM DEBUG] too_early detected, retry begin #" .. beginRetries .. " after " .. waitFor .. "s")
             task.wait(waitFor)
             pcall(function()
                 R.PullInput:InvokeServer(sid, "begin")
@@ -709,7 +739,7 @@ local function runCycle(myGen)
                     return R.PullInput:InvokeServer(sid, "tap")
                 end)
                 tapCount += 1
-                print("[FAM DEBUG] tap #" .. tapCount, "ok=", okTap, "result=", resTap, "progress=", state.progress)
+                dbg("[FAM DEBUG] tap #" .. tapCount, "ok=", okTap, "result=", resTap, "progress=", state.progress)
             end
         end)
         task.wait(delay)
@@ -2488,7 +2518,7 @@ do
     _loadCfg()
 
     Window:Tag({
-        Title = "FAM v1.1.5",
+        Title = "FAM v0000000",
         Icon = "solar:crown-line-bold",
         Color = Color3.fromRGB(0, 0, 0),
         Border = true,
@@ -2909,6 +2939,37 @@ do
             Callback = function(v)
                 local num = tonumber(v)
                 state.speedFishingDelay = num and math.clamp(num, 0.5, 5) or 0.5
+            end,
+        })
+
+        AutoFishSection:Button({
+            Title    = "Copy Debug Log",
+            Icon     = "solar:clipboard-text-bold",
+            Justify  = "Center",
+            Callback = function()
+                local buf = _G.__FAM_DEBUG_LOG or {}
+                local text = table.concat(buf, "\n")
+                if text == "" then
+                    text = "(debug log kosong, coba mancing dulu sebentar)"
+                end
+                local ok = pcall(function()
+                    setclipboard(text)
+                end)
+                WindUI:Notify({
+                    Title = "FAM",
+                    Content = ok and ("Copied " .. #buf .. " lines to clipboard") or "Failed to copy (setclipboard unsupported)",
+                    Duration = 3,
+                })
+            end,
+        })
+
+        AutoFishSection:Button({
+            Title    = "Clear Debug Log",
+            Icon     = "solar:trash-bin-trash-bold",
+            Justify  = "Center",
+            Callback = function()
+                _G.__FAM_DEBUG_LOG = {}
+                WindUI:Notify({ Title = "FAM", Content = "Debug log cleared", Duration = 2 })
             end,
         })
 
