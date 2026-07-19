@@ -709,12 +709,7 @@ local function runCycle(myGen)
     end
     fire(R.StartPulling)
     playFishAnim("Pulling", true)
-    task.wait(0.4) -- beri server waktu memproses StartPulling sebelum kirim begin
-    local okBegin, resBegin = pcall(function()
-        return R.PullInput:InvokeServer(sid, "begin")
-    end)
-    dbg("[FAM DEBUG] begin ok=", okBegin, "result=", resBegin)
-    task.wait(0.5) -- beri waktu server menginisialisasi sesi sebelum tap pertama (hindari reason=too_early)
+    task.wait(0.15) -- jeda kecil agar server memproses StartPulling sebelum tap pertama
     local ppt = tonumber(bite.progressPerTap) or 0.06
     local delay = state.speedFishingDelay or math.clamp(0.055 + (ppt < 0.05 and 0.02 or 0), 0.05, 0.12)
     local deadline = os.clock() + (tonumber(bite.timeLimit) or 15) + 2
@@ -2519,7 +2514,7 @@ do
     _loadCfg()
 
     Window:Tag({
-        Title = "FAM v1.1.5",
+        Title = "FAM v32233223",
         Icon = "solar:crown-line-bold",
         Color = Color3.fromRGB(0, 0, 0),
         Border = true,
