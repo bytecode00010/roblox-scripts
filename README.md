@@ -25,5 +25,5 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/bytecodexs/bytecodexs
 ---
 
 <p align="center">
-⭐ Star this repo if u like it!
+⭐ Star this repo if u see it!
 </p>
